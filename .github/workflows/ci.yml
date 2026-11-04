@@ -1,0 +1,81 @@
+name: CI
+
+# Base CI. Runs on every push to every branch. Trunk is `main`; other
+# branches are only for short-lived experiments. Every action is pinned to a
+# commit SHA, with the version as a comment, at the latest release within its
+# current major version. Dependabot proposes updates.
+on:
+  push:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    name: Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the commit-message step needs the pushed range
+
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+
+      - name: Install pre-commit
+        # Exact version, wheels only so no setup scripts run. Match the
+        # version in the README's Development setup; bump both together.
+        run: uv tool install --no-build pre-commit==4.7.0
+
+      - name: Cache pre-commit environments
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: All pre-commit hooks on every file
+        run: pre-commit run --all-files --show-diff-on-failure
+
+      - name: Lint commit messages in this push
+        # The same commitlint hook as the commit-msg gate, run once per commit.
+        env:
+          BEFORE: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+             && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            # Normal push: every commit the push added.
+            range="$BEFORE..$HEAD_SHA"
+          elif [ "$REF_NAME" != "main" ] && git rev-parse -q --verify origin/main >/dev/null; then
+            # New branch: every commit not already on main.
+            range="$(git merge-base origin/main "$HEAD_SHA")..$HEAD_SHA"
+          else
+            # First push of main (or history rewritten): lint the head commit.
+            range="$HEAD_SHA^!"
+          fi
+          echo "Linting commits in $range"
+          msg="$RUNNER_TEMP/commit-msg"
+          failed=0
+          for sha in $(git rev-list --reverse "$range"); do
+            echo "::group::$(git log --format='%h %s' -n1 "$sha")"
+            git log --format=%B -n1 "$sha" > "$msg"
+            if ! pre-commit run commitlint --hook-stage commit-msg --commit-msg-filename "$msg"; then
+              echo "::error::Commit $sha has a bad message (see CONTRIBUTING.md)"
+              failed=1
+            fi
+            echo "::endgroup::"
+          done
+          exit "$failed"
+
+      # --- Stack steps ---------------------------------------------------
+      # A stack adds its steps here, in this order: set up the toolchain
+      # (setup-uv is already above; JS/TS adds actions/setup-node), install
+      # from the lockfile (`uv sync --locked`, `npm ci --ignore-scripts`),
+      # run the tests, then build. See docs/DEVELOPMENT.md.
+      # --- End of stack steps --------------------------------------------
