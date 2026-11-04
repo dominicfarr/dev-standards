@@ -9,7 +9,7 @@ Each section says **when** it applies and which **tickets** it implies. The trig
 - **When a stack is chosen:** per stack, Python or JS/TS (Svelte).
 - **Once code with tests exists:** the first tested code is on `main`.
 
-Terms in bold are defined in [GLOSSARY.md](../GLOSSARY.md).
+Terms in bold are defined in the standards repo's [GLOSSARY.md](https://github.com/dominicfarr/dev-standards/blob/main/GLOSSARY.md).
 
 ## Tickets by trigger
 
@@ -40,7 +40,7 @@ Hosting and deploy tickets come from the project's own grilling; this document d
 - `pre-commit install --install-hooks` installs both the `pre-commit` and `commit-msg` hooks.
 - A hook that fails or changes files stops the commit. Fix the cause, `git add -u`, commit again. Every commit goes through the hooks; `--no-verify` is never used.
 - Hook revs come from `pre-commit autoupdate`.
-- `scripts/gate-proof.sh` re-proves the gates after any change to them.
+- [`scripts/gate-proof.sh`](https://github.com/dominicfarr/dev-standards/blob/main/scripts/gate-proof.sh) in the standards repo re-proves the gates after any change to them. Run it from a standards repo checkout with the project's path: `scripts/gate-proof.sh <project-dir>`.
 
 ## Stacks
 
@@ -48,10 +48,10 @@ Hosting and deploy tickets come from the project's own grilling; this document d
 
 | Stack | Package manager | **Hook fragment** | Dependabot ecosystem |
 |---|---|---|---|
-| Python | uv | `hooks/python.yaml`: ruff, pyright, pytest via `uv run --locked` | `uv` |
-| JS/TS (Svelte) | npm | `hooks/js-ts.yaml`: eslint, prettier, svelte-check, related vitest via `npx --no-install` | `npm` |
+| Python | uv | [`hooks/python.yaml`](https://github.com/dominicfarr/dev-standards/blob/main/hooks/python.yaml): ruff, pyright, pytest via `uv run --locked` | `uv` |
+| JS/TS (Svelte) | npm | [`hooks/js-ts.yaml`](https://github.com/dominicfarr/dev-standards/blob/main/hooks/js-ts.yaml): eslint, prettier, svelte-check, related vitest via `npx --no-install` | `npm` |
 
-Hook fragments live in the standards repo. They are `repo: local` hooks that run the project's tools from its own lockfile ([ADR 0001](adr/0001-projects-copy-standards.md)).
+Hook fragments live in the standards repo. They are `repo: local` hooks that run the project's tools from its own lockfile ([ADR 0001](https://github.com/dominicfarr/dev-standards/blob/main/docs/adr/0001-projects-copy-standards.md)).
 
 A stack ticket is done when all of these hold:
 
@@ -86,7 +86,7 @@ Folder layout for a project with both stacks is undecided; grill it when it come
 **The agent ticket** is done when all of these hold:
 
 1. **Human steps checked:** `gh secret list --repo dominicfarr/<repo>` lists `SONAR_TOKEN`, and Sonar's public `/api/qualitygates/project_status?projectKey=dominicfarr_<repo>` finds the project. If either fails, stop and report.
-2. **Templates copied** with source headers (the `<sha>` in each file's first line set to the commit read): [`templates/sonar.yml`](../templates/sonar.yml) to `.github/workflows/sonar.yml`, and [`templates/sonar-project.properties`](../templates/sonar-project.properties) to the root, with `<repo>` replaced. The workflow is its own workflow, on push to `main`, so a red gate never shows as failing tests.
+2. **Templates copied** with source headers (the `<sha>` in each file's first line set to the commit read): [`templates/sonar.yml`](https://github.com/dominicfarr/dev-standards/blob/main/templates/sonar.yml) to `.github/workflows/sonar.yml`, and [`templates/sonar-project.properties`](https://github.com/dominicfarr/dev-standards/blob/main/templates/sonar-project.properties) to the root, with `<repo>` replaced. The workflow is its own workflow, on push to `main`, so a red gate never shows as failing tests.
 3. **Coverage extension points filled:** each is marked `EXTENSION POINT` in the templates. The stack's install and test-under-coverage steps in the workflow, at the base CI's action versions; the coverage report path and `sonar.coverage.exclusions` in the properties, matching the test tool's own excludes. Tests next to the code are also listed in `sonar.exclusions`, since a file can't be indexed twice.
 4. **First-analysis triage:** the gate judges only new code, so the agent checks the whole project through `/api/measures/component`, `/api/issues/search` and `/api/hotspots/search`. It fixes real issues in code. A reviewed false positive becomes a scoped `sonar.issue.ignore.multicriteria` entry with a comment saying why, added only after Dom approves it. The target is a passing gate, zero bugs, vulnerabilities, code smells and hotspots, and all ratings A.
 5. **Badges:** quality gate and coverage badges in the README, with one line on what Sonar checks.
