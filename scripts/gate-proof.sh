@@ -234,42 +234,24 @@ case_python_no_tests() {
 
 # --- JS/TS hook fragment ----------------------------------------------------
 
-# make_js_ts_project: builds a scratch Svelte/TS project in $workdir/js-ts
-# from the standards repo's scripts/fixtures/js-ts (with its npm lockfile),
-# source_repo's base gates, and the standards repo's hooks/js-ts.yaml appended
-# unedited to the base pre-commit config. Commits a baseline before any hook
-# exists, then installs the hooks. Leaves you in it.
-make_js_ts_project() {
-  local dest="$workdir/js-ts"
+# js_ts_scratch_project: lays down a scratch Svelte/TS project from the
+# standards repo's scripts/fixtures/js-ts (with its npm lockfile) on
+# source_repo's base gates, and appends the standards repo's hooks/js-ts.yaml
+# unedited to the base pre-commit config.
+js_ts_scratch_project() {
   local fragment="$script_dir/../hooks/js-ts.yaml"
-  mkdir -p "$dest"
-  if [ ! -f "$fragment" ]; then
-    printf 'missing %s\n' "$fragment" >"$log"
-    return 1
-  fi
   (cd "$script_dir/fixtures/js-ts" &&
     git ls-files -z -co --exclude-standard . | tar -cf - --null -T -) |
-    tar -xf - -C "$dest"
-  cp "$source_repo/.gitignore" "$source_repo/commitlint.config.mjs" "$dest/"
-  cat "$source_repo/.pre-commit-config.yaml" "$fragment" \
-    >"$dest/.pre-commit-config.yaml"
-  cd "$dest"
-  npm ci --ignore-scripts --no-audit --no-fund >"$log" 2>&1 || return 1
-  git init -q -b main
-  git config user.name "Gate Proof"
-  git config user.email "gate-proof@example.invalid"
-  git config commit.gpgsign false
-  git add -A
-  git commit -q -m "chore: baseline"
-  pre-commit install --install-hooks >"$log" 2>&1
+    tar -xf - -C .
+  {
+    printf '\n'
+    cat "$fragment"
+  } >>.pre-commit-config.yaml
+  npm ci --ignore-scripts --no-audit --no-fund
 }
 
 case_js_ts() {
-  if ! make_js_ts_project; then
-    fail "JS/TS scratch project with the hook fragment merged"
-    cd "$workdir/base"
-    return
-  fi
+  make_throwaway js-ts js_ts_scratch_project
 
   printf 'export function half(n: number): number {\n  const unused = 1;\n  return n / 2;\n}\n' \
     >src/half.ts
