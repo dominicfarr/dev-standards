@@ -186,7 +186,7 @@ python_scratch_uv() {
   cp "$script_dir/fixtures/python/pyproject.toml" \
     "$script_dir/fixtures/python/uv.lock" .
   printf 'def add(a: int, b: int) -> int:\n    return a + b\n' >calc.py
-  uv sync --locked
+  uv sync --locked --no-build
 }
 
 # python_scratch_project: the scratch uv project with a passing test.

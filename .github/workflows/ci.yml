@@ -76,6 +76,7 @@ jobs:
       # --- EXTENSION POINT: stack steps -----------------------------------
       # A stack adds its steps here, in this order: set up the toolchain
       # (setup-uv is already above; JS/TS adds actions/setup-node), install
-      # from the lockfile (`uv sync --locked`, `npm ci --ignore-scripts`),
+      # from the lockfile with no install scripts (`uv sync --locked
+      # --no-build`, `npm ci --ignore-scripts`; Sonar S8541),
       # run the tests, then build. See docs/DEVELOPMENT.md.
       # --- END OF EXTENSION POINT -----------------------------------------

@@ -57,7 +57,7 @@ A stack ticket is done when all of these hold:
 
 1. **Toolchain:** the project's lockfile (`uv.lock` or `package-lock.json`) holds the tools its hook fragment runs, as dev dependencies.
 2. **Hooks:** the hook fragment is merged into `.pre-commit-config.yaml` with a **source header**, its `<sha>` filled in, and proven once in a throwaway copy of the project, never in the project itself. In a clone of the project with the hooks installed, commit a lint error, a type error and a failing test in turn: each must be rejected by its own hook alone, and a good commit accepted. The standards repo's gate proof shows the shape of each case (`case_python`, `case_js_ts`), and run against the project it re-proves the base gates there. Delete the copy afterwards.
-3. **CI:** the base CI's **extension point** sets up the toolchain, installs without running scripts (`npm ci --ignore-scripts`; `uv sync --locked`), runs the tests, builds once and uploads the build as an artifact.
+3. **CI:** the base CI's **extension point** sets up the toolchain, installs without running scripts (`npm ci --ignore-scripts`; `uv sync --locked --no-build`, Sonar S8541), runs the tests, builds once and uploads the build as an artifact.
 4. **Dependabot:** `.github/dependabot.yml` gains the stack's ecosystem, weekly and grouped, with commit prefix `build` and `include: scope`, giving `build(deps): …`.
 5. **README:** the *Development setup* section gains the stack's prerequisites and install command.
 

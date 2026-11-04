@@ -39,7 +39,8 @@ jobs:
       #   1. Set up the toolchain: astral-sh/setup-uv (Python) or
       #      actions/setup-node (JS/TS).
       #   2. Install from the lockfile with no install scripts:
-      #      `uv sync --locked`, `npm ci --ignore-scripts` (Sonar S8541).
+      #      `uv sync --locked --no-build`, `npm ci --ignore-scripts`
+      #      (Sonar S8541).
       #   3. Run the tests under coverage, writing the report to the path set
       #      in sonar-project.properties.
       # In any shell step, assign positional arguments to a local variable
