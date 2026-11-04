@@ -160,11 +160,11 @@ case_dependabot_commit() {
 
 # --- Python hook fragment ---------------------------------------------------
 
-# python_scratch_project: lays down a scratch uv project (tools pinned in the
+# python_scratch_uv: lays down a scratch uv project (tools pinned in the
 # standards repo's scripts/fixtures/python) on source_repo's base gates, and
 # merges the standards repo's hooks/python.yaml the way a project does: fill
 # in the source header's <sha>, then append the fragment unedited otherwise.
-python_scratch_project() {
+python_scratch_uv() {
   local fragment="$script_dir/../hooks/python.yaml" sha
   sha=$(git -C "$script_dir" rev-parse HEAD)
   head -n 1 "$fragment" |
@@ -179,10 +179,15 @@ python_scratch_project() {
   cp "$script_dir/fixtures/python/pyproject.toml" \
     "$script_dir/fixtures/python/uv.lock" .
   printf 'def add(a: int, b: int) -> int:\n    return a + b\n' >calc.py
+  uv sync --locked
+}
+
+# python_scratch_project: the scratch uv project with a passing test.
+python_scratch_project() {
+  python_scratch_uv || return 1
   mkdir -p tests
   printf 'from calc import add\n\n\ndef test_add() -> None:\n    assert add(1, 2) == 3\n' \
     >tests/test_calc.py
-  uv sync --locked
 }
 
 case_python() {
@@ -210,6 +215,19 @@ case_python() {
     >tests/test_negative.py
   git add tests/test_negative.py
   expect_accepted "good Python commit accepted" "test: cover negative numbers"
+
+  cd "$workdir/base"
+}
+
+# A new project has no tests yet: pytest collects none (exit 5), and that
+# must not stop the commit.
+case_python_no_tests() {
+  make_throwaway python-no-tests python_scratch_uv
+
+  printf 'from calc import add\n\ntotal: int = add(1, 2)\n' >total.py
+  git add total.py
+  expect_accepted "Python commit with no tests yet accepted" \
+    "feat: add a total"
 
   cd "$workdir/base"
 }
@@ -289,6 +307,7 @@ CASES="
   case_dependabot_commit
   case_js_ts
   case_python
+  case_python_no_tests
 "
 
 printf 'Gate proof for %s\n' "$source_repo"

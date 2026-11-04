@@ -34,10 +34,14 @@
 
       # A fast full run, stopping at the first failure. If the suite grows
       # slow, add pytest-testmon to the dev group and append `--testmon` to
-      # run only the tests related to the change.
+      # run only the tests related to the change. pytest exits 5 when it
+      # collects no tests, which passes here so a project with no tests yet
+      # can still commit; any other failure stops the commit.
       - id: pytest
         name: pytest
-        entry: uv run --locked pytest -x -q
+        entry: >-
+          bash -c 'uv run --locked pytest -x -q || { code=$?;
+          [ "$code" -eq 5 ] || exit "$code"; }'
         language: unsupported
         types_or: [python, pyi]
         pass_filenames: false
