@@ -1,0 +1,34 @@
+# from dominicfarr/dev-standards@<sha>
+# JS/TS (Svelte) hook fragment. Append this file, unedited, to the end of the
+# project's .pre-commit-config.yaml: its entries sit under the base `repos:`.
+# Every hook runs the project's own tools from its npm lockfile through
+# `npx --no-install` (ADR 0001), so install them as devDependencies first:
+# eslint, prettier, svelte-check, typescript and vitest. Any hook that fails
+# or changes files stops the commit: review, `git add -u`, commit again.
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint --fix
+        entry: npx --no-install eslint --fix --max-warnings=0 --no-warn-ignored
+        language: system
+        types_or: [javascript, ts, svelte]
+        require_serial: true
+      - id: prettier
+        name: prettier
+        entry: npx --no-install prettier --write --ignore-unknown
+        language: system
+        types: [text]
+        exclude: ^package-lock\.json$
+      # Checks the whole project, not the staged files. Point --tsconfig at
+      # the config that includes your app's .ts and .svelte files.
+      - id: svelte-check
+        name: svelte-check
+        entry: npx --no-install svelte-check --tsconfig ./tsconfig.json --fail-on-warnings
+        language: system
+        types_or: [javascript, ts, svelte, json]
+        pass_filenames: false
+      - id: vitest-related
+        name: vitest related
+        entry: npx --no-install vitest related --run --passWithNoTests
+        language: system
+        types_or: [javascript, ts, svelte]
