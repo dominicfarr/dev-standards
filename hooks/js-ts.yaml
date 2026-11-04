@@ -1,6 +1,7 @@
 # from dominicfarr/dev-standards@<sha>
-# JS/TS (Svelte) hook fragment. Append this file, unedited, to the end of the
-# project's .pre-commit-config.yaml: its entries sit under the base `repos:`.
+# JS/TS (Svelte) hook fragment. Append this file to the end of the project's
+# .pre-commit-config.yaml (its entries sit under the base `repos:`), with
+# <sha> above filled in with the standards repo commit it was copied from.
 # Every hook runs the project's own tools from its npm lockfile through
 # `npx --no-install` (ADR 0001), so install them as devDependencies first:
 # eslint, prettier, svelte-check, typescript and vitest.
