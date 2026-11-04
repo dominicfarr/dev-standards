@@ -1,0 +1,37 @@
+# Base gates. Every hook is pinned by rev: set revs with `pre-commit autoupdate`,
+# never by hand. Any hook that fails or changes files stops the commit: review,
+# `git add -u`, commit again. Stacks merge their hook fragment into this file.
+default_install_hook_types: [pre-commit, commit-msg]
+default_stages: [pre-commit]
+
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.0
+    hooks:
+      - id: gitleaks
+
+  # actionlint only runs shellcheck on workflow scripts when shellcheck is on
+  # PATH, so shellcheck is a documented prerequisite as well as a hook.
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1-1
+    hooks:
+      - id: shellcheck
+
+  # Commit-message linter. pre-commit provisions Node for it, so the project
+  # needs no npm. The rules live in commitlint.config.mjs; see CONTRIBUTING.md.
+  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+    rev: v9.27.0
+    hooks:
+      - id: commitlint
+        stages: [commit-msg]
+        # Pass the message file explicitly, so the hook also works with
+        # `pre-commit run --hook-stage commit-msg --commit-msg-filename <file>`.
+        pass_filenames: true
+        # Keep this on the same major version as the @commitlint/cli the
+        # hook's rev ships (`npm view @commitlint/config-conventional version`).
+        additional_dependencies: ["@commitlint/config-conventional@21.2.4"]
