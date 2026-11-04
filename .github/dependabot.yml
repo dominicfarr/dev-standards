@@ -1,0 +1,16 @@
+# Base Dependabot config: weekly, grouped updates to the workflow actions.
+# Headers come out as `ci(deps): bump …`, which CONTRIBUTING.md allows.
+# Dependabot's bodies have long lines, so commitlint.config.mjs ignores its
+# commits. Each stack adds its own ecosystem here, with prefix `build`.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ['*']
+    commit-message:
+      prefix: ci
+      include: scope

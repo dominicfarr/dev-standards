@@ -210,6 +210,75 @@ case_python() {
     >tests/test_negative.py
   git add tests/test_negative.py
   expect_accepted "good Python commit accepted" "test: cover negative numbers"
+
+  cd "$workdir/base"
+}
+
+# --- JS/TS hook fragment ----------------------------------------------------
+
+# make_js_ts_project: builds a scratch Svelte/TS project in $workdir/js-ts
+# from the standards repo's scripts/fixtures/js-ts (with its npm lockfile),
+# source_repo's base gates, and the standards repo's hooks/js-ts.yaml appended
+# unedited to the base pre-commit config. Commits a baseline before any hook
+# exists, then installs the hooks. Leaves you in it.
+make_js_ts_project() {
+  local dest="$workdir/js-ts"
+  local fragment="$script_dir/../hooks/js-ts.yaml"
+  mkdir -p "$dest"
+  if [ ! -f "$fragment" ]; then
+    printf 'missing %s\n' "$fragment" >"$log"
+    return 1
+  fi
+  (cd "$script_dir/fixtures/js-ts" &&
+    git ls-files -z -co --exclude-standard . | tar -cf - --null -T -) |
+    tar -xf - -C "$dest"
+  cp "$source_repo/.gitignore" "$source_repo/commitlint.config.mjs" "$dest/"
+  cat "$source_repo/.pre-commit-config.yaml" "$fragment" \
+    >"$dest/.pre-commit-config.yaml"
+  cd "$dest"
+  npm ci --ignore-scripts --no-audit --no-fund >"$log" 2>&1 || return 1
+  git init -q -b main
+  git config user.name "Gate Proof"
+  git config user.email "gate-proof@example.invalid"
+  git config commit.gpgsign false
+  git add -A
+  git commit -q -m "chore: baseline"
+  pre-commit install --install-hooks >"$log" 2>&1
+}
+
+case_js_ts() {
+  if ! make_js_ts_project; then
+    fail "JS/TS scratch project with the hook fragment merged"
+    cd "$workdir/base"
+    return
+  fi
+
+  printf 'export function half(n: number): number {\n  const unused = 1;\n  return n / 2;\n}\n' \
+    >src/half.ts
+  git add src/half.ts
+  expect_rejected "JS/TS lint error rejected by eslint alone" \
+    "feat: add half" eslint "no-unused-vars"
+
+  printf '<script lang="ts">\n  const label: number = "total";\n</script>\n\n<p>{label}</p>\n' \
+    >src/Label.svelte
+  git add src/Label.svelte
+  expect_rejected "JS/TS type error rejected by svelte-check alone" \
+    "feat: add label" svelte-check "not assignable to type 'number'"
+
+  printf 'export function sum(a: number, b: number): number {\n  return a - b;\n}\n' \
+    >src/sum.ts
+  git add src/sum.ts
+  expect_rejected "JS/TS failing related test rejected by vitest alone" \
+    "fix: change sum" "vitest related" "adds two numbers"
+
+  printf 'export function double(n: number): number {\n  return n * 2;\n}\n' \
+    >src/double.ts
+  printf 'import { expect, test } from "vitest";\nimport { double } from "./double";\n\ntest("doubles a number", () => {\n  expect(double(2)).toBe(4);\n});\n' \
+    >src/double.test.ts
+  git add src/double.ts src/double.test.ts
+  expect_accepted "JS/TS good commit accepted" "feat: add double"
+
+  cd "$workdir/base"
 }
 
 CASES="
@@ -218,6 +287,7 @@ CASES="
   case_unknown_scope
   case_good_commit
   case_dependabot_commit
+  case_js_ts
   case_python
 "
 

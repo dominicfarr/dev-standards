@@ -1,3 +1,5 @@
+Read first: `PLAN.md`, `GLOSSARY.md`, `docs/adr/`, `docs/DEVELOPMENT.md` (the development practices: every standard as settled scope, and the tickets each trigger implies, such as choosing a stack), and `CONTRIBUTING.md`.
+
 ## Agent skills
 
 ### Issue tracker
