@@ -9,8 +9,8 @@
 #
 # To add a case (for example a hook fragment's lint error), write a
 # case_<name> function below that stages a change and calls expect_rejected
-# or expect_accepted, then add it to CASES. Use a fresh throwaway with
-# make_throwaway if the case needs a different project.
+# or expect_accepted, then add it to the cases array. Use a fresh throwaway
+# with make_throwaway if the case needs a different project.
 set -euo pipefail
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -284,7 +284,7 @@ case_js_ts() {
   cd "$workdir/base"
 }
 
-CASES="
+cases=(
   case_staged_secret
   case_non_conventional_message
   case_unknown_scope
@@ -293,11 +293,11 @@ CASES="
   case_js_ts
   case_python
   case_python_no_tests
-"
+)
 
 printf 'Gate proof for %s\n' "$source_repo"
 make_throwaway base
-for case_fn in $CASES; do
+for case_fn in "${cases[@]}"; do
   "$case_fn"
 done
 
