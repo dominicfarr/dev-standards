@@ -15,7 +15,7 @@ Terms in bold are defined in the standards repo's [GLOSSARY.md](https://github.c
 
 | Trigger | Ticket | Label | Section |
 |---|---|---|---|
-| Once `PLAN.md` exists | Repo metadata: About description and topics | `ready-for-agent` | [Repo metadata](#repo-metadata) |
+| Once `PLAN.md` exists | Repo metadata: About description and topics, drafted for Dom to apply | `ready-for-human` | [Repo metadata](#repo-metadata) |
 | When a stack is chosen | Add the `<stack>` stack, one ticket per stack | `ready-for-agent` | [Stacks](#stacks) |
 | Once code with tests exists | Sonar human steps | `ready-for-human` | [Sonar](#sonar) |
 | Once code with tests exists | Add Sonar, blocked by the human steps | `ready-for-agent` | [Sonar](#sonar) |
@@ -95,9 +95,9 @@ A red quality gate counts as a red build.
 
 ## Repo metadata
 
-**When:** the About description and topics once `PLAN.md` exists; each badge with the thing it reports. **Tickets:** "Repo metadata" (`ready-for-agent`) once `PLAN.md` exists; the badges ride on other work.
+**When:** the About description and topics once `PLAN.md` exists; each badge with the thing it reports. **Tickets:** "Repo metadata" (`ready-for-human`) once `PLAN.md` exists; the badges ride on other work.
 
-- **About:** `gh repo edit dominicfarr/<repo> --description … --add-topic …`, at most 20 topics, drawn from `PLAN.md` and the glossary. Add `--homepage` once hosting exists.
+- **About:** the agent creating the ticket drafts it; Dom applies it. The ticket body holds the drafted description and topics (at most 20, drawn from `PLAN.md` and the glossary) as one ready-to-run command, `gh repo edit dominicfarr/<repo> --description … --add-topic …`. Agents never run `gh repo edit` themselves. Add `--homepage` once hosting exists, in a new draft.
 - **CI badge:** with the base CI, at creation.
 - **Quality gate and coverage badges:** in the "Add Sonar" ticket.
 
