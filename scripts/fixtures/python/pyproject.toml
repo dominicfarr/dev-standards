@@ -1,0 +1,21 @@
+# Scratch uv project for the gate proof's Python case. The tool versions
+# here and in uv.lock are what the Python hook fragment runs.
+[project]
+name = "gate-proof-scratch"
+version = "0.0.0"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "pyright[nodejs]==1.1.414",
+  "pytest==9.2.0",
+  "ruff==0.17.3",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

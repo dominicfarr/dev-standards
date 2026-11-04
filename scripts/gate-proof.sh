@@ -30,15 +30,23 @@ fail() {
   sed 's/^/      | /' "$log"
 }
 
-# make_throwaway <name>: copies source_repo's tracked and untracked
-# (non-ignored) files into $workdir/<name>, commits them as a baseline before
-# any hook exists, then installs the hooks. Leaves you in the new repo.
+# make_throwaway <name> [<setup function>]: copies source_repo's tracked and
+# untracked (non-ignored) files into $workdir/<name>, runs <setup function>
+# there if given (to lay down a scratch project), commits it all as a
+# baseline before any hook exists, then installs the hooks. Leaves you in
+# the new repo.
 make_throwaway() {
   local dest="$workdir/$1"
   mkdir -p "$dest"
   (cd "$source_repo" && git ls-files -z -co --exclude-standard |
     tar -cf - --null -T -) | tar -xf - -C "$dest"
   cd "$dest"
+  if [ -n "${2:-}" ]; then
+    "$2" >"$log" 2>&1 || {
+      fail "$2 in throwaway copy"
+      exit 1
+    }
+  fi
   git init -q -b main
   git config user.name "Gate Proof"
   git config user.email "gate-proof@example.invalid"
@@ -150,12 +158,67 @@ case_dependabot_commit() {
       'Signed-off-by: dependabot[bot] <support@github.com>')"
 }
 
+# --- Python hook fragment ---------------------------------------------------
+
+# python_scratch_project: lays down a scratch uv project (tools pinned in the
+# standards repo's scripts/fixtures/python) on source_repo's base gates, and
+# merges the standards repo's hooks/python.yaml the way a project does: fill
+# in the source header's <sha>, then append the fragment unedited otherwise.
+python_scratch_project() {
+  local fragment="$script_dir/../hooks/python.yaml" sha
+  sha=$(git -C "$script_dir" rev-parse HEAD)
+  head -n 1 "$fragment" |
+    grep -qxF "# from dominicfarr/dev-standards@<sha>" || {
+    echo "$fragment lacks its source header placeholder"
+    return 1
+  }
+  {
+    printf '\n'
+    sed "1s/<sha>/$sha/" "$fragment"
+  } >>.pre-commit-config.yaml
+  cp "$script_dir/fixtures/python/pyproject.toml" \
+    "$script_dir/fixtures/python/uv.lock" .
+  printf 'def add(a: int, b: int) -> int:\n    return a + b\n' >calc.py
+  mkdir -p tests
+  printf 'from calc import add\n\n\ndef test_add() -> None:\n    assert add(1, 2) == 3\n' \
+    >tests/test_calc.py
+  uv sync --locked
+}
+
+case_python() {
+  make_throwaway python python_scratch_project
+
+  # A mutable default: ruff's fix for it is unsafe, so --fix leaves it.
+  printf 'def collect(items: list[int] = []) -> list[int]:\n    return items\n' \
+    >collect.py
+  git add collect.py
+  expect_rejected "Python lint error rejected by ruff check alone" \
+    "feat: add a mutable default" "ruff check" "B006"
+
+  printf 'from calc import add\n\ntotal: str = add(1, 2)\n' >typed.py
+  git add typed.py
+  expect_rejected "Python type error rejected by pyright alone" \
+    "feat: add a mistyped total" pyright "reportAssignmentType"
+
+  printf 'from calc import add\n\n\ndef test_add_wrong() -> None:\n    assert add(1, 2) == 4\n' \
+    >tests/test_wrong.py
+  git add tests/test_wrong.py
+  expect_rejected "Python failing test rejected by pytest alone" \
+    "test: add a wrong expectation" pytest "1 failed"
+
+  printf 'from calc import add\n\n\ndef test_add_negative() -> None:\n    assert add(-1, -2) == -3\n' \
+    >tests/test_negative.py
+  git add tests/test_negative.py
+  expect_accepted "good Python commit accepted" "test: cover negative numbers"
+}
+
 CASES="
   case_staged_secret
   case_non_conventional_message
   case_unknown_scope
   case_good_commit
   case_dependabot_commit
+  case_python
 "
 
 printf 'Gate proof for %s\n' "$source_repo"
