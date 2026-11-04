@@ -41,9 +41,10 @@ make_throwaway() {
   (cd "$source_repo" && git ls-files -z -co --exclude-standard |
     tar -cf - --null -T -) | tar -xf - -C "$dest"
   cd "$dest"
-  if [ -n "${2:-}" ]; then
-    "$2" >"$log" 2>&1 || {
-      fail "$2 in throwaway copy"
+  local setup=${2:-}
+  if [[ -n "$setup" ]]; then
+    "$setup" >"$log" 2>&1 || {
+      fail "$setup in throwaway copy"
       exit 1
     }
   fi
@@ -61,7 +62,8 @@ make_throwaway() {
 
 # commit_with <message>: commits what's staged through the hooks.
 commit_with() {
-  git commit -q -m "$1" >"$log" 2>&1
+  local message=$1
+  git commit -q -m "$message" >"$log" 2>&1
 }
 
 # expect_rejected <description> <message> <hook name> [<expected output>]
@@ -75,11 +77,11 @@ expect_rejected() {
     fail "$description (commit was accepted)"
   else
     after=$(git rev-parse HEAD)
-    if [ "$before" != "$after" ]; then
+    if [[ "$before" != "$after" ]]; then
       fail "$description (HEAD moved)"
     elif ! only_failure_is "$only_hook"; then
       fail "$description (not rejected by $only_hook alone)"
-    elif [ -n "$expected" ] && ! grep -qF -- "$expected" "$log"; then
+    elif [[ -n "$expected" ]] && ! grep -qF -- "$expected" "$log"; then
       fail "$description (output lacks: $expected)"
     else
       pass "$description"
@@ -104,10 +106,10 @@ expect_accepted() {
 # only_failure_is <hook name>: true when the last commit's hook output shows
 # exactly one failed hook and it is <hook name>.
 only_failure_is() {
-  local failures
+  local hook=$1 failures
   failures=$(grep -E '\.Failed$' "$log" || true)
-  [ "$(printf '%s\n' "$failures" | grep -c .)" -eq 1 ] &&
-    printf '%s\n' "$failures" | grep -q "^$1"
+  [[ "$(printf '%s\n' "$failures" | grep -c .)" -eq 1 ]] &&
+    printf '%s\n' "$failures" | grep -q "^$hook"
 }
 
 # A token in the shape of a GitHub personal access token, built at run time
@@ -302,4 +304,4 @@ for case_fn in "${cases[@]}"; do
 done
 
 printf '\n%d passed, %d failed\n' "$passed" "$failed"
-[ "$failed" -eq 0 ]
+[[ "$failed" -eq 0 ]]
