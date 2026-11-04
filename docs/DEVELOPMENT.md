@@ -127,5 +127,5 @@ No license by default, which means all rights reserved. A license is Dom's decis
 7. **`gh run list --commit` also lists Dependabot runs.** Filter by workflow name before watching a run.
 8. **Sonar's Automatic Analysis** runs on import without installing dependencies, reports unresolvable configs, and blocks CI-based analysis. Turn it off before the first CI scan.
 9. **GitHub's automatic security fixes** can fail repeatedly with `security_update_not_possible` for development-only advisories. That's noise, not risk. Likewise, `npm audit` "fixes" for development-only advisories that are major downgrades get noted, not applied.
-10. **The context-mode plugin blocks `curl`.** Make HTTP API checks, such as Sonar's API, through `ctx_execute` with `fetch`.
+10. **On Dom's machine, the context-mode plugin blocks `curl`.** This comes from Dom's agent setup, not from any project. There, make HTTP API checks, such as Sonar's API, through `ctx_execute` with `fetch`.
 11. **Agent worktrees** need the stack's install (`uv sync`, `npm ci`) in each worktree; the git hooks are shared from the main `.git`. When tickets run in parallel, the merger rebases onto the new `main`.
