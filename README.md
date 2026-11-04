@@ -28,6 +28,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and the commit message f
 
 It also proves the JS/TS hook fragment (`hooks/js-ts.yaml`): it builds a scratch Svelte/TS project from `scripts/fixtures/js-ts`, which has its own npm lockfile, and appends the fragment, unedited, to the base config. It then shows that a lint error, a type error and a failing related test are each rejected by their own hook, and that a good commit passes. This case needs npm and network access for `npm ci`.
 
+It proves the Python hook fragment (`hooks/python.yaml`) the same way: a scratch uv project whose `pyproject.toml` and `uv.lock` in `scripts/fixtures/python` pin ruff, pyright and pytest, with the fragment appended to the base config. A lint error, a type error and a failing test are each rejected by their own hook, and a good commit passes. This case needs uv and network access for `uv sync`.
+
 ```sh
 scripts/gate-proof.sh            # this repo
 scripts/gate-proof.sh ../project # any repo with the base gates

@@ -48,7 +48,7 @@ Hosting and deploy tickets come from the project's own grilling; this document d
 
 | Stack | Package manager | **Hook fragment** | Dependabot ecosystem |
 |---|---|---|---|
-| Python | uv | `hooks/python.yaml`: ruff, pyright via `uv run` | `uv` |
+| Python | uv | `hooks/python.yaml`: ruff, pyright, pytest via `uv run --locked` | `uv` |
 | JS/TS (Svelte) | npm | `hooks/js-ts.yaml`: eslint, prettier, svelte-check, related vitest via `npx --no-install` | `npm` |
 
 Hook fragments live in the standards repo. They are `repo: local` hooks that run the project's tools from its own lockfile ([ADR 0001](adr/0001-projects-copy-standards.md)).
