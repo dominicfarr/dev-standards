@@ -44,6 +44,8 @@ jobs:
       #      in sonar-project.properties.
       # In any shell step, assign positional arguments to a local variable
       # before use, never `$1` directly (Sonar S7679).
+      # A repo with no stack and no tests deletes this block, markers
+      # included, rather than leave a step that pretends to measure coverage.
       # --- END OF EXTENSION POINT ------------------------------------------
 
       - name: SonarQube Cloud
