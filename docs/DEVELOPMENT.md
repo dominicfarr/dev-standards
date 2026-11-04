@@ -1,0 +1,131 @@
+# Development practices
+
+Every **standard** a **project** follows. Grilling reads this as settled scope: treat each standard as decided, and ask only about choices it leaves open (which **stack**, the domain, hosting). A project that departs from a standard records why in an ADR.
+
+Each section says **when** it applies and which **tickets** it implies. The triggers are:
+
+- **At creation:** `new-project` sets it up. No ticket, unless it's missing.
+- **Once `PLAN.md` exists:** after the first grilling.
+- **When a stack is chosen:** per stack, Python or JS/TS (Svelte).
+- **Once code with tests exists:** the first tested code is on `main`.
+
+Terms in bold are defined in [GLOSSARY.md](../GLOSSARY.md).
+
+## Tickets by trigger
+
+| Trigger | Ticket | Label | Section |
+|---|---|---|---|
+| Once `PLAN.md` exists | Repo metadata: About description and topics | `ready-for-agent` | [Repo metadata](#repo-metadata) |
+| When a stack is chosen | Add the `<stack>` stack, one ticket per stack | `ready-for-agent` | [Stacks](#stacks) |
+| Once code with tests exists | Sonar human steps | `ready-for-human` | [Sonar](#sonar) |
+| Once code with tests exists | Add Sonar, blocked by the human steps | `ready-for-agent` | [Sonar](#sonar) |
+
+Hosting and deploy tickets come from the project's own grilling; this document doesn't cover them yet.
+
+## Delivery
+
+**When:** at creation. **Tickets:** none.
+
+- **Trunk-based** on `main`: small, working commits straight to `main`. Other branches are throwaway experiments.
+- **[minimumcd.org](https://minimumcd.org):** CI runs on every push to every branch, the checks gate the deploy, only the pipeline deploys, and it deploys the one build artifact CI produced.
+- The base CI (`.github/workflows/ci.yml`, copied at creation) runs pre-commit across all files and lints every commit in the push. Its marked extension slot takes each stack's steps.
+- A deploy job, when hosting arrives, `needs` the checks, runs only on `main` and deploys the uploaded artifact.
+
+## Local gates
+
+**When:** at creation. **Tickets:** none; each stack ticket extends them.
+
+- The **base gates** are gitleaks, actionlint, shellcheck-py and commitlint at the `commit-msg` stage, in `.pre-commit-config.yaml`. commitlint runs through pre-commit, so a project needs no npm to lint commits. Its types and scopes match `CONTRIBUTING.md`; change both together.
+- pre-commit is installed with `uv tool install pre-commit==<pin>`, and CI installs the same pin. Bump both together.
+- `pre-commit install --install-hooks` installs both the `pre-commit` and `commit-msg` hooks.
+- A hook that fails or changes files stops the commit. Fix the cause, `git add -u`, commit again. Every commit goes through the hooks; `--no-verify` is never used.
+- Hook revs come from `pre-commit autoupdate`.
+- `scripts/gate-proof.sh` re-proves the gates after any change to them.
+
+## Stacks
+
+**When:** a stack is chosen. **Tickets:** one "Add the `<stack>` stack" ticket per stack (`ready-for-agent`).
+
+| Stack | Package manager | **Hook fragment** | Dependabot ecosystem |
+|---|---|---|---|
+| Python | uv | `hooks/python.yaml`: ruff, pyright via `uv run` | `uv` |
+| JS/TS (Svelte) | npm | `hooks/js-ts.yaml`: eslint, prettier, svelte-check, related vitest via `npx --no-install` | `npm` |
+
+Hook fragments live in the standards repo. They are `repo: local` hooks that run the project's tools from its own lockfile ([ADR 0001](adr/0001-projects-copy-standards.md)).
+
+A stack ticket is done when all of these hold:
+
+1. **Toolchain:** the project's lockfile (`uv.lock` or `package-lock.json`) holds the tools its hook fragment runs, as dev dependencies.
+2. **Hooks:** the hook fragment is merged into `.pre-commit-config.yaml` with a **source header**, and the fragment's gate-proof cases (lint error, type error, failing test) are rejected.
+3. **CI:** the base CI's extension slot sets up the toolchain, installs without running scripts (`npm ci --ignore-scripts`; `uv sync --locked`), runs the tests, builds once and uploads the build as an artifact.
+4. **Dependabot:** `.github/dependabot.yml` gains the stack's ecosystem, weekly and grouped, with commit prefix `build` and `include: scope`, giving `build(deps): …`.
+5. **README:** the *Development setup* section gains the stack's prerequisites and install command.
+
+Folder layout for a project with both stacks is undecided; grill it when it comes up.
+
+## Pinning
+
+**When:** at creation, and on every new workflow or action. **Tickets:** none; each workflow ticket follows it.
+
+- Every action is pinned to a commit SHA, with the version as a comment: `uses: actions/checkout@<sha> # v5.0.0`. Sonar flags unpinned actions (S7637).
+- Pin at the latest release within the action's current major version. Use the same version in every workflow.
+- Dependabot (`github-actions`, weekly, grouped, prefix `ci`, from creation) proposes major upgrades as separate changes.
+- Install exact versions (S8544) without build or install scripts (S8541): `--no-build`, `--ignore-scripts`.
+
+## Sonar
+
+**When:** once code with tests exists. **Tickets:** "Sonar human steps" (`ready-for-human`), then "Add Sonar" (`ready-for-agent`, blocked by the human ticket).
+
+**Human steps,** about two minutes:
+
+1. Import the repo into the SonarQube Cloud organization `dominicfarr`. The project key comes out as `dominicfarr_<repo>`.
+2. Turn Automatic Analysis off.
+3. Create a Project Analysis Token for the project.
+4. `gh secret set SONAR_TOKEN --repo dominicfarr/<repo>`, typing the token at the prompt.
+
+**The agent ticket** is done when all of these hold:
+
+1. **Human steps checked:** `gh secret list --repo dominicfarr/<repo>` lists `SONAR_TOKEN`, and Sonar's public `/api/qualitygates/project_status?projectKey=dominicfarr_<repo>` finds the project. If either fails, stop and report.
+2. **Templates copied** with source headers: `templates/sonar.yml` to `.github/workflows/sonar.yml`, and `templates/sonar-project.properties` to the root. The workflow is its own workflow, on push to `main`, so a red gate never shows as failing tests.
+3. **Coverage extension points filled:** the stack's install and test-under-coverage steps in the workflow; the coverage report path and `sonar.coverage.exclusions` in the properties, matching the test tool's own excludes. Tests next to the code are also listed in `sonar.exclusions`, since a file can't be indexed twice.
+4. **First-analysis triage:** the gate judges only new code, so the agent checks the whole project through `/api/measures/component`, `/api/issues/search` and `/api/hotspots/search`. It fixes real issues in code. A reviewed false positive becomes a scoped `sonar.issue.ignore.multicriteria` entry with a comment saying why, added only after Dom approves it. The target is a passing gate, zero bugs, vulnerabilities, code smells and hotspots, and all ratings A.
+5. **Badges:** quality gate and coverage badges in the README, with one line on what Sonar checks.
+
+A red quality gate counts as a red build.
+
+## Repo metadata
+
+**When:** the About description and topics once `PLAN.md` exists; each badge with the thing it reports. **Tickets:** "Repo metadata" (`ready-for-agent`) once `PLAN.md` exists; the badges ride on other work.
+
+- **About:** `gh repo edit dominicfarr/<repo> --description … --add-topic …`, at most 20 topics, drawn from `PLAN.md` and the glossary. Add `--homepage` once hosting exists.
+- **CI badge:** with the base CI, at creation.
+- **Quality gate and coverage badges:** in the "Add Sonar" ticket.
+
+## Secrets
+
+**When:** whenever a workflow needs one. **Tickets:** a `ready-for-human` ticket, or a human step inside the ticket that needs it.
+
+- Only Dom sets secrets, with `gh secret set NAME --repo <owner>/<repo>`, which prompts for the value. Always pass `--repo`.
+- Values stay out of agents, chat, issues and commits. An agent checks a secret exists with `gh secret list --repo <owner>/<repo>`.
+
+## License
+
+**When:** at creation. **Tickets:** none.
+
+No license by default, which means all rights reserved. A license is Dom's decision.
+
+## Gotchas
+
+**When:** always. **Tickets:** none. Each of these cost a red run or a retry.
+
+1. **actionlint skips shellcheck when shellcheck isn't on PATH**, so hooks pass locally and CI fails. shellcheck is a documented prerequisite, and the base gates include `shellcheck-py`.
+2. **Keep config-conventional's default `subject-case`.** Overriding it with `lower-case` rejects proper nouns ("CloudFront").
+3. **The 72-character body-line limit is enforced.** A failed scripted commit leaves its files staged, and the next commit sweeps them up. After any scripted commit sequence, check each commit with `git show --stat`.
+4. **Tooling only checks that a commit type is allowed, not that it's right.** `feat` and `fix` are only for changes the person using the project can see; review catches the rest.
+5. **zsh doesn't split unquoted `$VAR`, and macOS ships bash 3.2** with no associative arrays. Write multi-step git or gh scripts as bash files with `set -euo pipefail` and plain arrays.
+6. **`gh secret set` without `--repo`** targets whichever repo matches the current folder.
+7. **`gh run list --commit` also lists Dependabot runs.** Filter by workflow name before watching a run.
+8. **Sonar's Automatic Analysis** runs on import without installing dependencies, reports unresolvable configs, and blocks CI-based analysis. Turn it off before the first CI scan.
+9. **GitHub's automatic security fixes** can fail repeatedly with `security_update_not_possible` for development-only advisories. That's noise, not risk. Likewise, `npm audit` "fixes" for development-only advisories that are major downgrades get noted, not applied.
+10. **The context-mode plugin blocks `curl`.** Make HTTP API checks, such as Sonar's API, through `ctx_execute` with `fetch`.
+11. **Agent worktrees** need the stack's install (`uv sync`, `npm ci`) in each worktree; the git hooks are shared from the main `.git`. When tickets run in parallel, the merger rebases onto the new `main`.
