@@ -158,14 +158,12 @@ case_dependabot_commit() {
       'Signed-off-by: dependabot[bot] <support@github.com>')"
 }
 
-# --- Python hook fragment ---------------------------------------------------
-
-# python_scratch_uv: lays down a scratch uv project (tools pinned in the
-# standards repo's scripts/fixtures/python) on source_repo's base gates, and
-# merges the standards repo's hooks/python.yaml the way a project does: fill
-# in the source header's <sha>, then append the fragment unedited otherwise.
-python_scratch_uv() {
-  local fragment="$script_dir/../hooks/python.yaml" sha
+# merge_fragment <stack>: merges the standards repo's hooks/<stack>.yaml into
+# the current directory's .pre-commit-config.yaml the way a project does:
+# fill in the source header's <sha>, then append the fragment unedited
+# otherwise.
+merge_fragment() {
+  local fragment="$script_dir/../hooks/$1.yaml" sha
   sha=$(git -C "$script_dir" rev-parse HEAD)
   head -n 1 "$fragment" |
     grep -qxF "# from dominicfarr/dev-standards@<sha>" || {
@@ -176,6 +174,15 @@ python_scratch_uv() {
     printf '\n'
     sed "1s/<sha>/$sha/" "$fragment"
   } >>.pre-commit-config.yaml
+}
+
+# --- Python hook fragment ---------------------------------------------------
+
+# python_scratch_uv: lays down a scratch uv project (tools pinned in the
+# standards repo's scripts/fixtures/python) on source_repo's base gates, with
+# the standards repo's hooks/python.yaml merged in.
+python_scratch_uv() {
+  merge_fragment python || return 1
   cp "$script_dir/fixtures/python/pyproject.toml" \
     "$script_dir/fixtures/python/uv.lock" .
   printf 'def add(a: int, b: int) -> int:\n    return a + b\n' >calc.py
@@ -236,17 +243,13 @@ case_python_no_tests() {
 
 # js_ts_scratch_project: lays down a scratch Svelte/TS project from the
 # standards repo's scripts/fixtures/js-ts (with its npm lockfile) on
-# source_repo's base gates, and appends the standards repo's hooks/js-ts.yaml
-# unedited to the base pre-commit config.
+# source_repo's base gates, with the standards repo's hooks/js-ts.yaml merged
+# in.
 js_ts_scratch_project() {
-  local fragment="$script_dir/../hooks/js-ts.yaml"
+  merge_fragment js-ts || return 1
   (cd "$script_dir/fixtures/js-ts" &&
     git ls-files -z -co --exclude-standard . | tar -cf - --null -T -) |
     tar -xf - -C .
-  {
-    printf '\n'
-    cat "$fragment"
-  } >>.pre-commit-config.yaml
   npm ci --ignore-scripts --no-audit --no-fund
 }
 
