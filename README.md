@@ -1,10 +1,13 @@
 # dev-standards
 
 [![CI](https://github.com/dominicfarr/dev-standards/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dominicfarr/dev-standards/actions/workflows/ci.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=dominicfarr_dev-standards&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=dominicfarr_dev-standards)
 
 The standards repo: the one place Dom's standard files and development practices live. Every new project copies its files from here when it's created and when its stack is chosen. See [PLAN.md](PLAN.md) for what's here and what's coming, and [GLOSSARY.md](GLOSSARY.md) for the terms.
 
 This repo follows its own standards: its commits go through the base gates, and [CONTRIBUTING.md](CONTRIBUTING.md) is the standard one.
+
+Every push to `main` is checked by CI and analysed by [SonarQube Cloud](https://sonarcloud.io/summary/new_code?id=dominicfarr_dev-standards), using the repo's own Sonar templates, for bugs, vulnerabilities, code smells and duplication in the scripts, workflows, templates and hook fragments. There are no tests, so no coverage.
 
 ## Development setup
 
