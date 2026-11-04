@@ -153,18 +153,19 @@ case_dependabot_commit() {
 # --- JS/TS hook fragment ----------------------------------------------------
 
 # make_js_ts_project: builds a scratch Svelte/TS project in $workdir/js-ts
-# from scripts/fixtures/js-ts (with its npm lockfile), the base gates and
-# hooks/js-ts.yaml appended unedited to the base pre-commit config. Commits a
-# baseline before any hook exists, then installs the hooks. Leaves you in it.
+# from the standards repo's scripts/fixtures/js-ts (with its npm lockfile),
+# source_repo's base gates, and the standards repo's hooks/js-ts.yaml appended
+# unedited to the base pre-commit config. Commits a baseline before any hook
+# exists, then installs the hooks. Leaves you in it.
 make_js_ts_project() {
   local dest="$workdir/js-ts"
-  local fragment="$source_repo/hooks/js-ts.yaml"
+  local fragment="$script_dir/../hooks/js-ts.yaml"
   mkdir -p "$dest"
   if [ ! -f "$fragment" ]; then
     printf 'missing %s\n' "$fragment" >"$log"
     return 1
   fi
-  (cd "$source_repo/scripts/fixtures/js-ts" &&
+  (cd "$script_dir/fixtures/js-ts" &&
     git ls-files -z -co --exclude-standard . | tar -cf - --null -T -) |
     tar -xf - -C "$dest"
   cp "$source_repo/.gitignore" "$source_repo/commitlint.config.mjs" "$dest/"
