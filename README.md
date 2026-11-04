@@ -1,5 +1,7 @@
 # dev-standards
 
+[![CI](https://github.com/dominicfarr/dev-standards/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dominicfarr/dev-standards/actions/workflows/ci.yml)
+
 The standards repo: the one place Dom's standard files and development practices live. Every new project copies its files from here when it's created and when its stack is chosen. See [PLAN.md](PLAN.md) for what's here and what's coming, and [GLOSSARY.md](GLOSSARY.md) for the terms.
 
 This repo follows its own standards: its commits go through the base gates, and [CONTRIBUTING.md](CONTRIBUTING.md) is the standard one.
