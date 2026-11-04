@@ -16,6 +16,9 @@ repos:
     rev: v1.7.12
     hooks:
       - id: actionlint
+        # Also lint workflow templates under templates/, where the standards
+        # repo keeps its Sonar workflow so it never runs. A no-op elsewhere.
+        files: ^(\.github/workflows/|templates/.*\.ya?ml$)
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.11.0.1-1

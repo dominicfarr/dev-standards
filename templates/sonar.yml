@@ -1,0 +1,52 @@
+# from dominicfarr/dev-standards@<sha>
+# Sonar workflow template. Copy to .github/workflows/sonar.yml when the
+# project's "Add Sonar" ticket is worked (docs/DEVELOPMENT.md, Sonar), then
+# fill the one marked extension slot below. It lives under templates/ in the
+# standards repo so it never runs there.
+name: Sonar
+
+# Its own workflow, so CI reports the checks and tests and the quality gate
+# badge reports this analysis: a quality-gate failure never shows as failing
+# tests. Trunk-based, so it runs on pushes to main only.
+on:
+  push:
+    branches: [main]
+
+# Least privilege: the analysis only reads the repository.
+permissions:
+  contents: read
+
+concurrency:
+  group: sonar-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  analyse:
+    name: SonarQube Cloud analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Every action is pinned to a commit SHA, with the version as a comment
+      # (Sonar S7637), on the same versions as the base CI. Dependabot bumps
+      # them together.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # SonarQube Cloud needs the full history to tell new code from old
+
+      # --- EXTENSION POINT: stack install and tests under coverage ---------
+      # The stack adds its steps here, in this order, using the same action
+      # versions as the base CI:
+      #   1. Set up the toolchain: astral-sh/setup-uv (Python) or
+      #      actions/setup-node (JS/TS).
+      #   2. Install from the lockfile with no install scripts:
+      #      `uv sync --locked`, `npm ci --ignore-scripts` (Sonar S8541).
+      #   3. Run the tests under coverage, writing the report to the path set
+      #      in sonar-project.properties.
+      # In any shell step, assign positional arguments to a local variable
+      # before use, never `$1` directly (Sonar S7679).
+      # --- END OF EXTENSION POINT ------------------------------------------
+
+      - name: SonarQube Cloud
+        uses: SonarSource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65 # v8.4.1
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
