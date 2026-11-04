@@ -1,7 +1,7 @@
 # from dominicfarr/dev-standards@<sha>
 # Sonar workflow template. Copy to .github/workflows/sonar.yml when the
 # project's "Add Sonar" ticket is worked (docs/DEVELOPMENT.md, Sonar), then
-# fill the one marked extension slot below. It lives under templates/ in the
+# fill the one marked extension point below. It lives under templates/ in the
 # standards repo so it never runs there.
 name: Sonar
 

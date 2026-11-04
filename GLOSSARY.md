@@ -34,3 +34,7 @@ _Avoid_: hook import, remote hook
 
 **Source header**:
 The first line of a copied file, naming the standards repo commit it came from, so drift from the current standard is visible.
+
+**Extension point**:
+A marked block in a copied file (the base CI, the Sonar templates) where a stack or a later ticket adds its own steps or values. Each is marked `EXTENSION POINT` in the file.
+_Avoid_: extension slot, slot, hook point

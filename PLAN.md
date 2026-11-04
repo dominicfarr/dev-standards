@@ -20,7 +20,7 @@ Source material: [docs/bootstrap-from-playlist-transfer.md](docs/bootstrap-from-
 | `CONTRIBUTING.md` | Trunk-based workflow, Conventional Commits 1.0.0, the types table (`feat`/`fix` only for user-visible changes), base scopes `deps` and `adr` (projects add their glossary terms), "change the commit-lint config and this file together" |
 | `docs/DEVELOPMENT.md` | The development practices (see below) |
 | `.pre-commit-config.yaml` | Base gates: gitleaks, actionlint, shellcheck-py, and commitlint at the `commit-msg` stage, run by pre-commit so it needs no npm (`conventional-pre-commit` can't enforce the length limits or skip Dependabot) |
-| `.github/workflows/ci.yml` | Base CI: on every push, run pre-commit across all files and lint every commit in the push. It has a marked slot for each stack's test and build steps |
+| `.github/workflows/ci.yml` | Base CI: on every push, run pre-commit across all files and lint every commit in the push. It has a marked extension point for each stack's test and build steps |
 | `.github/dependabot.yml` | Base: weekly, grouped `github-actions` updates (prefix `ci`) |
 | `hooks/python.yaml`, `hooks/js-ts.yaml` | Hook fragments: `repo: local` hooks that run each stack's tools from the project's lockfile (ruff, pyright via `uv run`; eslint, prettier, svelte-check, vitest via `npx --no-install`) |
 | `templates/sonar.yml`, `templates/sonar-project.properties` | Sonar workflow and base properties, copied when a project's Sonar ticket is worked |
