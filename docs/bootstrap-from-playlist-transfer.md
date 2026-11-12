@@ -94,12 +94,13 @@ Language layers append their own section (dependencies, build output, caches, co
 The `checks` job:
 1. checkout with `fetch-depth: 0`
 2. setup-uv, then `uv tool install --no-build pre-commit==<pinned>`, and a cache of `~/.cache/pre-commit` keyed on the config file
-3. `pre-commit run --all-files --show-diff-on-failure`
-4. **lint every commit in the push:**
+3. **Extension point (toolchain and install):** the language layer's setup and install (with `--ignore-scripts` or the equivalent). It sits before pre-commit because the language layer's hooks run the project's own installed tools.
+4. `pre-commit run --all-files --show-diff-on-failure`
+5. **lint every commit in the push:**
    - **normal push:** the range `before..sha`
    - **new branch:** from `merge-base origin/main` to the head
    - **first push of main:** only the last commit
-5. **Extension point:** the language layer's setup, install (with `--ignore-scripts` or the equivalent) and **test and build** steps. Build once, and upload the build as an artifact.
+6. **Extension point (test, build, upload):** the language layer's **test and build** steps. Build once, and upload the build as an artifact.
 
 The `deploy` job is an **extension point** for the hosting layer: `needs: checks`, and runs only on `main`.
 
