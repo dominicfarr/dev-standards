@@ -10,8 +10,9 @@
 # A repo-dir with no stack (no lockfile, such as the standards repo) gets the
 # base cases plus the hook fragments' fixture cases, which prove the
 # fragments themselves. A repo-dir with a lockfile is a project: the copy is
-# installed first (`npm ci` for package-lock.json, `uv sync --locked` for
-# uv.lock), so the stack's hooks can run, and gets the base cases on that
+# installed first, as CI installs it (`npm ci --ignore-scripts` for
+# package-lock.json, `uv sync --locked --no-build` for uv.lock), so the
+# stack's hooks can run, and gets the base cases on that
 # installed copy. A package-lock.json project also gets project cases: its
 # own config and code, not the fixtures, with each case file formatted by the
 # project's own prettier so only the intended hook fails. There are no
@@ -299,13 +300,17 @@ case_js_ts() {
 # --- Projects with a stack ----------------------------------------------------
 
 # install_project: installs the throwaway copy's dependencies from its
-# lockfile. npm ci runs scripts, so a SvelteKit project's `prepare` runs
-# `svelte-kit sync`.
+# lockfile the way CI does, with no install or build scripts (Sonar S6505,
+# S8541). A SvelteKit project then gets the `svelte-kit sync` its skipped
+# `prepare` script would have run.
 install_project() {
   if [[ -f package-lock.json ]]; then
-    npm ci --no-audit --no-fund
+    npm ci --ignore-scripts --no-audit --no-fund
+    if [[ -d node_modules/@sveltejs/kit ]]; then
+      npx --no-install svelte-kit sync
+    fi
   elif [[ -f uv.lock ]]; then
-    uv sync --locked
+    uv sync --locked --no-build
   fi
 }
 
