@@ -7,6 +7,16 @@
 # git repo, installs its pre-commit hooks there and tries each case. Nothing
 # in repo-dir is changed. Exits non-zero if any case fails.
 #
+# A repo-dir with no stack (no lockfile, such as the standards repo) gets the
+# base cases plus the hook fragments' fixture cases, which prove the
+# fragments themselves. A repo-dir with a lockfile is a project: the copy is
+# installed first (`npm ci` for package-lock.json, `uv sync --locked` for
+# uv.lock), so the stack's hooks can run, and gets the base cases on that
+# installed copy. A package-lock.json project also gets project cases: its
+# own config and code, not the fixtures, with each case file formatted by the
+# project's own prettier so only the intended hook fails. There are no
+# project cases for a uv.lock project yet, so the fixtures never run there.
+#
 # To add a case (for example a hook fragment's lint error), write a
 # case_<name> function below that stages a change and calls expect_rejected
 # or expect_accepted, then add it to the cases array. Use a fresh throwaway
@@ -286,19 +296,109 @@ case_js_ts() {
   cd "$workdir/base"
 }
 
-cases=(
+# --- Projects with a stack ----------------------------------------------------
+
+# install_project: installs the throwaway copy's dependencies from its
+# lockfile. npm ci runs scripts, so a SvelteKit project's `prepare` runs
+# `svelte-kit sync`.
+install_project() {
+  if [[ -f package-lock.json ]]; then
+    npm ci --no-audit --no-fund
+  elif [[ -f uv.lock ]]; then
+    uv sync --locked
+  fi
+}
+
+# format_with_project <file>...: formats files with the project's own
+# prettier, so a case file fails only the hook the case is about.
+format_with_project() {
+  npx --no-install prettier --write "$@" >/dev/null
+}
+
+# tested_module: prints the path of a tracked module that has a test next to
+# it (X.ts beside X.test.ts), or nothing.
+tested_module() {
+  local test_file module
+  while IFS= read -r test_file; do
+    module="${test_file%.test.ts}.ts"
+    if [[ -f "$module" ]]; then
+      printf '%s\n' "$module"
+      return 0
+    fi
+  done < <(git ls-files '*.test.ts')
+}
+
+case_project_js_ts() {
+  local module dir
+  module=$(tested_module)
+  if [[ -z "$module" ]]; then
+    fail "project has no module with a test next to it to break"
+    return 0
+  fi
+  dir=$(dirname "$module")
+
+  printf 'export function half(n: number): number {\n  const unused = 1;\n  return n / 2;\n}\n' \
+    >"$dir/gate-proof-half.ts"
+  format_with_project "$dir/gate-proof-half.ts"
+  git add "$dir/gate-proof-half.ts"
+  expect_rejected "project lint error rejected by eslint alone" \
+    "feat: add half" eslint "no-unused-vars"
+
+  printf 'export const label: number = "total";\n' >"$dir/gate-proof-label.ts"
+  format_with_project "$dir/gate-proof-label.ts"
+  git add "$dir/gate-proof-label.ts"
+  expect_rejected "project type error rejected by svelte-check alone" \
+    "feat: add label" svelte-check "not assignable to type 'number'"
+
+  # Breaking a module that already has a test: the module's own test, found
+  # by vitest related, must fail.
+  printf '\nthrow new Error("gate proof: module broken");\n' >>"$module"
+  format_with_project "$module"
+  git add "$module"
+  expect_rejected "project failing related test rejected by vitest alone" \
+    "fix: break a tested module" "vitest related" "gate proof: module broken"
+
+  printf 'export function double(n: number): number {\n  return n * 2;\n}\n' \
+    >"$dir/gate-proof-double.ts"
+  printf 'import { expect, test } from "vitest";\nimport { double } from "./gate-proof-double";\n\ntest("doubles a number", () => {\n  expect(double(2)).toBe(4);\n});\n' \
+    >"$dir/gate-proof-double.test.ts"
+  format_with_project "$dir/gate-proof-double.ts" "$dir/gate-proof-double.test.ts"
+  git add "$dir/gate-proof-double.ts" "$dir/gate-proof-double.test.ts"
+  expect_accepted "project good commit with a test accepted" "feat: add double"
+
+  cd "$workdir/base"
+}
+
+base_cases=(
   case_staged_secret
   case_non_conventional_message
   case_unknown_scope
   case_good_commit
   case_dependabot_commit
+)
+
+fixture_cases=(
   case_js_ts
   case_python
   case_python_no_tests
 )
 
+# A lockfile means the repo is a project with a stack: install it in the
+# throwaway copy and prove its own config and code. No lockfile means no
+# stack, so prove the hook fragments against the fixtures.
+setup=""
+cases=("${base_cases[@]}")
+if [[ -f "$source_repo/package-lock.json" ]]; then
+  setup=install_project
+  cases+=(case_project_js_ts)
+elif [[ -f "$source_repo/uv.lock" ]]; then
+  setup=install_project
+else
+  cases+=("${fixture_cases[@]}")
+fi
+
 printf 'Gate proof for %s\n' "$source_repo"
-make_throwaway base
+make_throwaway base "$setup"
 for case_fn in "${cases[@]}"; do
   "$case_fn"
 done
