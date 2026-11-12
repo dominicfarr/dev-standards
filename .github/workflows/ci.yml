@@ -45,6 +45,9 @@ jobs:
       # Sonar S8541). Install must come first because the stack's hooks run
       # the project's own tools (`npx --no-install ...`, `uv run --locked
       # ...`), which fail in the pre-commit step if nothing is installed.
+      # A SvelteKit project also runs `npx --no-install svelte-kit sync` right
+      # after `npm ci --ignore-scripts`: the skipped `prepare` script would
+      # have done it, and svelte-check fails without the .svelte-kit/ it makes.
       # --- END OF EXTENSION POINT -----------------------------------------
 
       - name: All pre-commit hooks on every file

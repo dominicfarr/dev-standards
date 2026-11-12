@@ -53,6 +53,10 @@ Hosting and deploy tickets come from the project's own grilling; this document d
 
 Hook fragments live in the standards repo. They are `repo: local` hooks that run the project's tools from its own lockfile ([ADR 0001](https://github.com/dominicfarr/dev-standards/blob/main/docs/adr/0001-projects-copy-standards.md)).
 
+**JS/TS (Svelte) notes:**
+
+- **svelte-kit sync:** a SvelteKit project runs `npx --no-install svelte-kit sync` right after `npm ci --ignore-scripts` in CI, because the skipped `prepare` script would have done it. It generates `.svelte-kit/`, which the project's `tsconfig.json` extends, so without it svelte-check and the type check fail. The base CI's install extension point comment says so too.
+
 A stack ticket is done when all of these hold:
 
 1. **Toolchain:** the project's lockfile (`uv.lock` or `package-lock.json`) holds the tools its hook fragment runs, as dev dependencies.
