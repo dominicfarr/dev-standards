@@ -37,6 +37,16 @@ jobs:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
 
+      # --- EXTENSION POINT: toolchain and install -------------------------
+      # A stack adds its steps here, after checkout and before pre-commit:
+      # set up the toolchain (setup-uv is already above; JS/TS adds
+      # actions/setup-node), then install from the lockfile with no install
+      # scripts (`uv sync --locked --no-build`, `npm ci --ignore-scripts`;
+      # Sonar S8541). Install must come first because the stack's hooks run
+      # the project's own tools (`npx --no-install ...`, `uv run --locked
+      # ...`), which fail in the pre-commit step if nothing is installed.
+      # --- END OF EXTENSION POINT -----------------------------------------
+
       - name: All pre-commit hooks on every file
         run: pre-commit run --all-files --show-diff-on-failure
 
@@ -73,10 +83,9 @@ jobs:
           done
           exit "$failed"
 
-      # --- EXTENSION POINT: stack steps -----------------------------------
-      # A stack adds its steps here, in this order: set up the toolchain
-      # (setup-uv is already above; JS/TS adds actions/setup-node), install
-      # from the lockfile with no install scripts (`uv sync --locked
-      # --no-build`, `npm ci --ignore-scripts`; Sonar S8541),
-      # run the tests, then build. See docs/DEVELOPMENT.md.
+      # --- EXTENSION POINT: test, build, upload ---------------------------
+      # A stack adds its steps here, after the checks, in this order: run
+      # the tests, then build once and upload the build as an artifact. The
+      # toolchain and install are already done by the extension point above.
+      # See docs/DEVELOPMENT.md.
       # --- END OF EXTENSION POINT -----------------------------------------
