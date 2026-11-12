@@ -56,6 +56,7 @@ Hook fragments live in the standards repo. They are `repo: local` hooks that run
 **JS/TS (Svelte) notes:**
 
 - **svelte-kit sync:** a SvelteKit project runs `npx --no-install svelte-kit sync` right after `npm ci --ignore-scripts` in CI, because the skipped `prepare` script would have done it. It generates `.svelte-kit/`, which the project's `tsconfig.json` extends, so without it svelte-check and the type check fail. The base CI's install extension point comment says so too.
+- **.prettierignore:** the project's `.prettierignore` lists every file copied from the standards repo with a source header, using the lines in the comment at the top of `hooks/js-ts.yaml`. The prettier hook runs on every text file, and the copies then diff cleanly against upstream whatever the project's prettier style.
 - **TypeScript:** pin it to the 6.x the fixture (`scripts/fixtures/js-ts`) is proven on, until svelte-check and typescript-eslint support 7. Dependabot will propose 7 as a major upgrade; hold it until the fixture is moved to 7 and the gate proof passes on it.
 
 A stack ticket is done when all of these hold:

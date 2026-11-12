@@ -7,6 +7,18 @@
 # eslint, prettier, svelte-check, typescript and vitest.
 # `language: unsupported` needs pre-commit 4.4.0 or later. Any hook that fails
 # or changes files stops the commit: review, `git add -u`, commit again.
+# The prettier hook below runs on every text file, including the files copied
+# verbatim from the standards repo. Keep those as upstream formats them, so
+# they diff cleanly whatever the project's prettier style: add these lines to
+# the project's .prettierignore (the same set `new-project` copies, each with
+# a source header):
+#   .gitignore
+#   .github/dependabot.yml
+#   .github/workflows/ci.yml
+#   .pre-commit-config.yaml
+#   commitlint.config.mjs
+#   CONTRIBUTING.md
+#   docs/DEVELOPMENT.md
   - repo: local
     hooks:
       - id: eslint
